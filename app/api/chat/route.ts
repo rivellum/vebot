@@ -90,8 +90,13 @@ export async function POST(req: NextRequest) {
         'Access-Control-Allow-Origin': '*',
       },
     })
-  } catch (err) {
-    console.error('Chat error:', err)
-    return Response.json({ error: 'Chat error' }, { status: 500 })
+  } catch (err: any) {
+    console.error('Chat error:', err?.message || err)
+    return Response.json({ 
+      error: 'Chat error', 
+      detail: err?.message || 'Unknown error',
+      hasKey: !!process.env.OPENAI_API_KEY,
+      keyPrefix: process.env.OPENAI_API_KEY?.slice(0, 10) || 'missing'
+    }, { status: 500 })
   }
 }
