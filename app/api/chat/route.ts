@@ -1,14 +1,9 @@
 import { NextRequest } from 'next/server'
-import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { SITE_CONFIGS } from '@/lib/sites'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
-
-function getOpenAI() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-}
 
 function getSupabase() {
   if (!process.env.SUPABASE_URL) return null
@@ -35,27 +30,44 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid message' }, { status: 400 })
     }
 
+    if (!process.env.OPENAI_API_KEY) {
+      return Response.json({ error: 'Missing API key' }, { status: 500 })
+    }
+
     const config = SITE_CONFIGS[siteId] || SITE_CONFIGS.default
 
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    const messages = [
       { role: 'system', content: config.systemPrompt },
       ...history.slice(-10).map((h: { role: string; content: string }) => ({
-        role: h.role as 'user' | 'assistant',
+        role: h.role,
         content: h.content,
       })),
       { role: 'user', content: message },
     ]
 
-    const openai = getOpenAI()
-    const stream = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
-      stream: true,
-      max_tokens: 500,
-      temperature: 0.7,
+    // Use native fetch instead of OpenAI SDK to avoid Vercel connection issues
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages,
+        stream: true,
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
     })
 
-    // Log to Supabase async (don't await — don't block response)
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text()
+      console.error('OpenAI API error:', openaiRes.status, errText)
+      return Response.json({ error: 'AI error', status: openaiRes.status }, { status: 502 })
+    }
+
+    // Log to Supabase async
     const supabase = getSupabase()
     if (supabase && sessionId) {
       supabase.from('chat_sessions').upsert({
@@ -67,17 +79,38 @@ export async function POST(req: NextRequest) {
       }, { onConflict: 'session_id' }).then(() => {})
     }
 
+    // Stream the response through
     const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
+    const reader = openaiRes.body!.getReader()
+
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream) {
-            const text = chunk.choices[0]?.delta?.content || ''
-            if (text) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+          let buffer = ''
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim()
+                if (data === '[DONE]') {
+                  controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                  continue
+                }
+                try {
+                  const parsed = JSON.parse(data)
+                  const text = parsed.choices?.[0]?.delta?.content || ''
+                  if (text) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+                  }
+                } catch {}
+              }
             }
           }
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
           controller.close()
         } catch (e) {
           controller.error(e)
@@ -97,9 +130,7 @@ export async function POST(req: NextRequest) {
     console.error('Chat error:', err?.message || err)
     return Response.json({ 
       error: 'Chat error', 
-      detail: err?.message || 'Unknown error',
-      hasKey: !!process.env.OPENAI_API_KEY,
-      keyPrefix: process.env.OPENAI_API_KEY?.slice(0, 10) || 'missing'
+      detail: err?.message || 'Unknown',
     }, { status: 500 })
   }
 }
