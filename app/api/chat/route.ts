@@ -3,11 +3,14 @@ import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { SITE_CONFIGS } from '@/lib/sites'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
-const supabase = process.env.SUPABASE_URL
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY!)
-  : null
+function getSupabase() {
+  if (!process.env.SUPABASE_URL) return null
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY!)
+}
 
 export async function OPTIONS() {
   return new Response(null, {
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest) {
       { role: 'user', content: message },
     ]
 
+    const openai = getOpenAI()
     const stream = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages,
@@ -49,6 +53,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Log to Supabase async (don't await — don't block response)
+    const supabase = getSupabase()
     if (supabase && sessionId) {
       supabase.from('chat_sessions').upsert({
         session_id: sessionId,
