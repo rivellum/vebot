@@ -9,6 +9,9 @@ export async function GET(req: NextRequest) {
     greeting: config.greeting,
     primaryColor: config.primaryColor,
     language: config.language,
+    fontFamily: config.fontFamily,
+    theme: config.theme,
+    botEmoji: config.botEmoji,
   }, {
     headers: { 'Access-Control-Allow-Origin': '*' }
   })

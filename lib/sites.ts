@@ -5,6 +5,9 @@ export interface SiteConfig {
   primaryColor: string
   language: 'en' | 'es' | 'auto'
   allowedOrigins?: string[]
+  fontFamily?: string
+  theme?: 'light' | 'dark'
+  botEmoji?: string
 }
 
 export const SITE_CONFIGS: Record<string, SiteConfig> = {
@@ -15,6 +18,9 @@ export const SITE_CONFIGS: Record<string, SiteConfig> = {
     primaryColor: '#00bcd4',
     language: 'en',
     allowedOrigins: ['thorngrade.com', 'riskgrade.ai', 'riskgrade.io', 'localhost'],
+    theme: 'dark',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    botEmoji: '🔒',
   },
   quemecubre: {
     name: 'QuéBot',
@@ -23,6 +29,9 @@ export const SITE_CONFIGS: Record<string, SiteConfig> = {
     primaryColor: '#10b981',
     language: 'es',
     allowedOrigins: ['quemecubre.com', 'quemecubre.mx', 'localhost'],
+    theme: 'dark',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    botEmoji: '🛡️',
   },
   pasatucedula: {
     name: 'CédulaBot',
@@ -31,6 +40,9 @@ export const SITE_CONFIGS: Record<string, SiteConfig> = {
     primaryColor: '#6366f1',
     language: 'es',
     allowedOrigins: ['pasatucedula.com', 'pasatucedula.com.mx', 'localhost'],
+    theme: 'dark',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    botEmoji: '🏥',
   },
   veseguro: {
     name: 'VeBot',
@@ -39,6 +51,9 @@ export const SITE_CONFIGS: Record<string, SiteConfig> = {
     primaryColor: '#3b82f6',
     language: 'es',
     allowedOrigins: ['veseguro.com', 'localhost'],
+    theme: 'dark',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    botEmoji: '💼',
   },
   prosperaseguros: {
     name: 'PrósperaBot',
@@ -47,6 +62,9 @@ export const SITE_CONFIGS: Record<string, SiteConfig> = {
     primaryColor: '#f59e0b',
     language: 'es',
     allowedOrigins: ['prosperaseguros.mx', 'localhost'],
+    theme: 'dark',
+    fontFamily: "'Inter', system-ui, sans-serif",
+    botEmoji: '🌟',
   },
   default: {
     name: 'VeBot',
@@ -55,5 +73,8 @@ export const SITE_CONFIGS: Record<string, SiteConfig> = {
     primaryColor: '#00bcd4',
     language: 'auto',
     allowedOrigins: [],
+    theme: 'dark',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    botEmoji: '🤖',
   },
 }
