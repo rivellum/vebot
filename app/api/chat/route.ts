@@ -3,6 +3,9 @@ import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { SITE_CONFIGS } from '@/lib/sites'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 }
